@@ -5,7 +5,8 @@ import { useParams } from 'react-router-dom'
 import Footer from './Footer'
 import Grid from '@mui/material/Grid';
 import GeneralTable from './GeneralTable';
-import MinimalTreeView from './MinimalTreeView.js'
+import SyntaxResult from './SyntaxResult.js'
+import SchemaResult from './SchemaResult';
 import BsddTreeView from './BsddTreeView'
 import GherkinResults from './GherkinResult';
 
@@ -15,7 +16,6 @@ import { PageContext } from './Page';
 
 
 function Report({kind}) {
-
   const context = useContext(PageContext);
 
   const [isLoggedIn, setLogin] = useState(false);
@@ -90,12 +90,12 @@ function Report({kind}) {
 
           {
             (kind === "syntax_and_schema")
-              ? <MinimalTreeView status={reportData["model"]["status_syntax"]} summary={"Syntax"} content={reportData["results"]["syntax_result"]["msg"]} />
+              ? <MinimalTreeView status={reportData["model"]["status_syntax"]} summary={"Syntax"} content={reportData["results"]["syntax_result"]} />
               : null
           }
           {
             (kind === "syntax_and_schema")
-              ? <MinimalTreeView status={reportData["model"]["status_schema"]} summary={"Schema"} content={reportData["results"]["schema_result"]["msg"]} />
+              ? <MinimalTreeView status={reportData["model"]["status_schema"]} summary={"Schema"} content={reportData["results"]["schema_result"] instances={reportData.instances}} />
               : null
           }
           {
@@ -113,7 +113,6 @@ function Report({kind}) {
               ? <GherkinResults status={reportData["model"]["status_ip"]} gherkin_task={reportData.tasks["informal_propositions_task"]} task_type="informal_propositions_task" />
               : null
           }
-          
           <Footer />
         </Grid>
       </div>
