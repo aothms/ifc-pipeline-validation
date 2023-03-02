@@ -90,12 +90,12 @@ function Report({kind}) {
 
           {
             (kind === "syntax_and_schema")
-              ? <MinimalTreeView status={reportData["model"]["status_syntax"]} summary={"Syntax"} content={reportData["results"]["syntax_result"]} />
+              ? <SyntaxResult status={reportData["model"]["status_syntax"]} summary={"Syntax"} content={reportData["results"]["syntax_result"]} />
               : null
           }
           {
             (kind === "syntax_and_schema")
-              ? <MinimalTreeView status={reportData["model"]["status_schema"]} summary={"Schema"} content={reportData["results"]["schema_result"] instances={reportData.instances}} />
+              ? <SchemaResult status={reportData["model"]["status_schema"]} summary={"Schema"} content={reportData["results"]["schema_result"]} instances={reportData.instances} />
               : null
           }
           {
