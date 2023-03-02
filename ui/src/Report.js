@@ -14,7 +14,7 @@ import { FETCH_PATH } from './environment'
 import { PageContext } from './Page';
 
 
-function Report() {
+function Report({kind}) {
 
   const context = useContext(PageContext);
 
@@ -88,13 +88,32 @@ function Report() {
           <GeneralTable data={reportData} type={"general"} />
           <GeneralTable data={reportData} type={"overview"} />
 
-          <MinimalTreeView status={reportData["model"]["status_syntax"]} summary={"Syntax"} content={reportData["results"]["syntax_result"]["msg"]} />
-          <MinimalTreeView status={reportData["model"]["status_schema"]} summary={"Schema"} content={reportData["results"]["schema_result"]["msg"]} />
-
-          <BsddTreeView status={reportData["model"]["status_bsdd"]} summary={"bSDD"} bsddResults={reportData["results"]["bsdd_results"]} />
-
-          <GherkinResults status={reportData["model"]["status_ia"]} gherkin_task={reportData.tasks["implementer_agreements_task"]} task_type="implementer_agreements_task" />
-          <GherkinResults status={reportData["model"]["status_ip"]} gherkin_task={reportData.tasks["informal_propositions_task"]} task_type="informal_propositions_task" />
+          {
+            (kind === "syntax_and_schema")
+              ? <MinimalTreeView status={reportData["model"]["status_syntax"]} summary={"Syntax"} content={reportData["results"]["syntax_result"]["msg"]} />
+              : null
+          }
+          {
+            (kind === "syntax_and_schema")
+              ? <MinimalTreeView status={reportData["model"]["status_schema"]} summary={"Schema"} content={reportData["results"]["schema_result"]["msg"]} />
+              : null
+          }
+          {
+            (kind === "bsdd")
+              ? <BsddTreeView status={reportData["model"]["status_bsdd"]} summary={"bSDD"} bsddResults={reportData["results"]["bsdd_results"]} />
+              : null
+          }
+          {
+            (kind === "rules")
+              ? <GherkinResults status={reportData["model"]["status_ia"]} gherkin_task={reportData.tasks["implementer_agreements_task"]} task_type="implementer_agreements_task" />
+              : null
+          }
+          {
+            (kind === "rules")
+              ? <GherkinResults status={reportData["model"]["status_ip"]} gherkin_task={reportData.tasks["informal_propositions_task"]} task_type="informal_propositions_task" />
+              : null
+          }
+          
           <Footer />
         </Grid>
       </div>
