@@ -6,9 +6,12 @@ import TreeItem from '@mui/lab/TreeItem';
 import { statusToColor } from './mappings'
 import Paper from '@mui/material/Paper';
 import TablePagination from '@mui/material/TablePagination';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
+import { PageContext } from './Page';
 
 export default function SchemaResult({ summary, content, status, instances }) {
+  const context = useContext(PageContext);
+
   const [data, setRows] = React.useState([])
   const [page, setPage] = useState(0);
 
@@ -18,22 +21,34 @@ export default function SchemaResult({ summary, content, status, instances }) {
 
   useEffect(() => {
     let grouped = [];
-    for (let c of (content || []).slice(page * 10, page * 10 + 10)) {
+    const do_slice = (arr) => {
+      if (context.printView) {
+        return arr;
+      } else {
+        return arr.slice(page * 10, page * 10 + 10);
+      }
+    }
+    for (let c of do_slice(content || [])) {
       if (grouped.length === 0 || (c.attribute ? c.attribute : 'Uncategorized') !== grouped[grouped.length-1][0]) {
         grouped.push([c.attribute ? c.attribute : 'Uncategorized',[]])
       }
       grouped[grouped.length-1][1].push(c);
     }
     setRows(grouped)
-  }, [page, content]);
+  }, [page, content, context]);
+
+  let expanded = ["root"];
+  console.log(context.printView, data);
+  if (context.printView) {
+    data.forEach(([hd, rows]) => {expanded.push(hd);});
+  }
 
   return (
     <Paper sx={{overflow: 'hidden'}}>
       <TreeView
-        aria-label="file system navigator"
         defaultCollapseIcon={<ExpandMoreIcon />}
         defaultExpandIcon={<ChevronRightIcon />}
-        defaultExpanded={["0"]}
+        defaultExpanded={expanded}
         sx={{
           "width": "850px",
           "backgroundColor": statusToColor[status],
@@ -51,10 +66,10 @@ export default function SchemaResult({ summary, content, status, instances }) {
           ".pre": { whiteSpace: 'pre' }
         }}
       >
-        <TreeItem nodeId="0" label="Schema">
+        <TreeItem nodeId="root" label="Schema">
           { data.length
             ? data.map(([hd, rows]) => {
-                return <TreeView defaultCollapseIcon={<ExpandMoreIcon />}
+                return <TreeView defaultCollapseIcon={<ExpandMoreIcon />} defaultExpanded={expanded}
                   defaultExpandIcon={<ChevronRightIcon />}>
                     <TreeItem nodeId={hd} label={<div><div class='caption'>{(rows[0].constraint_type || '').replace('_', ' ')} - {hd}</div><div class='subcaption'>{rows[0].constraint_type !== 'schema' ? rows[0].msg.split('\n')[0] : '\u00A0'}</div></div>}>
                       <table>
@@ -78,7 +93,7 @@ export default function SchemaResult({ summary, content, status, instances }) {
               })
             : <div>{content ? "Valid" : "Not checked"}</div> }
           {
-            content.length
+            !context.printView && content.length
             ? <TablePagination
                 sx={{display: 'flex', justifyContent: 'center', backgroundColor: statusToColor[status]}}
                 rowsPerPageOptions={[10]}

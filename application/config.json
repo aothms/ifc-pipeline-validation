@@ -5,6 +5,13 @@
         "ifc_validation_task",
         "bsdd_validation_task",
         "ia_validation_task",
-        "ip_validation_task"
-    ]
+        "ip_validation_task",
+        "pdf_report_task"
+    ],
+    "dependencies": {
+        "ifc_validation_task": ["syntax_validation_task"],
+        "bsdd_validation_task": ["syntax_validation_task"],
+        "ia_validation_task": ["syntax_validation_task"],
+        "ip_validation_task": ["syntax_validation_task"]
+    }
 }

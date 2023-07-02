@@ -57,7 +57,7 @@ function GherkinResults({ status, gherkin_task }) {
         }
         </TreeItem>)
         : (<TreeItem nodeId="0" label={label}>
-            <pre>{gherkin_task ? "Valid" : "Not checked"}</pre>
+            <pre>{gherkin_task && status !== 'n' ? "Valid" : "Not checked"}</pre>
         </TreeItem>) }
     </TreeView></Paper>
 }

@@ -11,6 +11,14 @@ function getSandboxId(pageTitle){
     }
 }
 
+function isPrintView(pageTitle){
+    const splittedUrl = window.location.href.split("/");
+    if (pageTitle === "report") {
+        return splittedUrl[3] === "report_all";
+    }
+    return false;
+}
+
 function getEnvironment(pageTitle){
     const splittedUrl = window.location.href.split("/");
     return splittedUrl[2].split('.')[0];
@@ -24,12 +32,13 @@ export default function Page(props){
     const [sandboxId, setSetSandboxId] = useState(getSandboxId(props.pageTitle));
     const [pageTitle, setPageTitle] = useState(props.pageTitle);
     const [environment, setEnvironment] = useState(getEnvironment(props.pageTitle));
+    const [printView, setPrintView] = useState(isPrintView(props.pageTitle));
 
     return (
 
         <ErrorBoundary>
             <PageContext.Provider
-                value={{sandboxId:sandboxId, pageTitle:pageTitle,environment:environment }}     
+                value={{sandboxId:sandboxId, pageTitle:pageTitle,environment:environment, printView:printView }}     
             >
                     {props.children}
             </PageContext.Provider>

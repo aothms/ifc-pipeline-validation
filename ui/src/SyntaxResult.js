@@ -6,9 +6,12 @@ import TreeItem from '@mui/lab/TreeItem';
 import { statusToColor } from './mappings'
 import Paper from '@mui/material/Paper';
 import TablePagination from '@mui/material/TablePagination';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
+import { PageContext } from './Page';
 
 export default function SyntaxResult({ content, status }) {
+  const context = useContext(PageContext);
+
   const [rows, setRows] = React.useState([])
   const [page, setPage] = useState(0);
 
@@ -17,8 +20,13 @@ export default function SyntaxResult({ content, status }) {
   };  
 
   useEffect(() => {
-    setRows(content.slice(page * 10, page * 10 + 10))
-  }, [page, content]);
+    setRows(context.printView ? content : content.slice(page * 10, page * 10 + 10))
+  }, [page, content, context]);
+
+  let expanded = ["root"];
+  if (context.printView) {
+    rows.forEach((_, l1) => {expanded.push(`syntax-${l1}`);});
+  }
 
   return (
     <Paper sx={{overflow: 'hidden'}}>
@@ -26,7 +34,7 @@ export default function SyntaxResult({ content, status }) {
         aria-label="file system navigator"
         defaultCollapseIcon={<ExpandMoreIcon />}
         defaultExpandIcon={<ChevronRightIcon />}
-        defaultExpanded={["0"]}
+        defaultExpanded={expanded}
         sx={{
           "width": "850px",
           "backgroundColor": statusToColor[status],
@@ -45,12 +53,12 @@ export default function SyntaxResult({ content, status }) {
           ".mono": { fontFamily: 'monospace, monospace', marginTop: '0.3em' }
         }}
       >
-        <TreeItem nodeId="0" label="Syntax">
+        <TreeItem nodeId="root" label="Syntax">
         { rows.length
-            ? rows.map(item => {
-                return <TreeView defaultCollapseIcon={<ExpandMoreIcon />}
+            ? rows.map((item, l1) => {
+                return <TreeView defaultCollapseIcon={<ExpandMoreIcon />} defaultExpanded={expanded}
                   defaultExpandIcon={<ChevronRightIcon />}>
-                    <TreeItem nodeId="syntax-0" label={<div class='caption'>{(item.error_type || 'syntax_error').replace('_', ' ')}</div>}>
+                    <TreeItem nodeId={`syntax-${l1}`} label={<div class='caption'>{(item.error_type || 'syntax_error').replace('_', ' ')}</div>}>
                       <table>
                         <thead>
                           <tr><th>Line</th><th>Column</th><th>Message</th></tr>
@@ -71,7 +79,7 @@ export default function SyntaxResult({ content, status }) {
               })
             : <div>{content ? "Valid" : "Not checked"}</div> }
           {
-            content.length
+            !context.printView && content.length
             ? <TablePagination
                 sx={{display: 'flex', justifyContent: 'center', backgroundColor: statusToColor[status]}}
                 rowsPerPageOptions={[10]}

@@ -276,6 +276,15 @@ class ids_validation_task(task):
                 i += 1
                 self.sub_progress(i)
 
+class pdf_report_task(task):
+    est_time = 3
+
+    def execute(self, directory, id):
+        from main import DEVELOPMENT
+        host = "localhost:3000" if DEVELOPMENT else "nginx:80"
+        url = f"http://{host}/report_all/{id}"
+        subprocess.run(["node", os.path.join(os.path.dirname(__file__), "puppeteer-pdf.mjs"), url, f"{id}.pdf"], cwd=directory)
+
 
 class xml_generation_task(task):
     est_time = 1
@@ -391,7 +400,8 @@ def do_process(id, validation_config, commit_id, ids_spec):
         
     input_files = [name for name in os.listdir(d) if os.path.isfile(os.path.join(d, name)) and os.path.join(d, name).endswith("ifc")]
     
-    print(validation_config["tasks"])
+    dependencies = validation_config.get('dependencies', {})
+    successful = {}
     
     tasks = [globals()[task] for task in validation_config["tasks"]]
 
@@ -441,6 +451,12 @@ def do_process(id, validation_config, commit_id, ids_spec):
         sum(map(operator.attrgetter('est_time'), tasks_on_aggregate))
         
     def run_task(t, args, aggregate_model=False):
+        if not all(successful.get(x, False) for x in dependencies.get(t.__name__, [])):
+            print(f"Not all dependencies succesful for {t.__name__}, skipping")
+            return
+        
+        print(f"Start executing {t.__name__}")
+
         nonlocal elapsed
         begin_end = (elapsed / total_est_time * 99, (elapsed + t.est_time) / total_est_time * 99)
         task = t(begin_end)
@@ -458,6 +474,7 @@ def do_process(id, validation_config, commit_id, ids_spec):
             start_time = datetime.now()
             task(d, *args)
             end_time = datetime.now()
+            successful[t.__name__] = True
             try:
                 vt_id = task.validation_task_id
                 with database.Session() as session:
@@ -476,18 +493,13 @@ def do_process(id, validation_config, commit_id, ids_spec):
             # Mark ID as failed
             with open(os.path.join(d, 'failed'), 'w') as f:
                 pass
-            return False
+
         elapsed += t.est_time
         return True
     
     for i in range(n_files):
         for t in tasks:
-            if not run_task(t, ["%s_%d" % (id, i) if is_multiple else id]):
-                break
-        # to break out of nested loop
-        else: continue
-        break
-    
+            run_task(t, ["%s_%d" % (id, i) if is_multiple else id])
    
     for t in tasks_on_aggregate:
         run_task(t, [id, input_files], aggregate_model=True)

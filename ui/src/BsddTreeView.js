@@ -11,9 +11,10 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { statusToColor } from './mappings'
+import { useContext } from 'react';
+import { PageContext } from './Page';
 
-
-function BsddReportRow({ key, valid, instance, requirement, required, observed }) {
+function BsddReportRow({ printView, key, valid, instance, requirement, required, observed }) {
   return (
     <TableRow
       key={key}
@@ -24,7 +25,10 @@ function BsddReportRow({ key, valid, instance, requirement, required, observed }
       </TableCell>
       <TableCell align="center"> {`${requirement}`}</TableCell>
       <TableCell align="center"> {`${required}`}</TableCell>
-      <TableCell align="center">  {`${observed}`}</TableCell>
+      <TableCell align="center">
+        {printView && !valid && "❌ "}
+        {`${observed}`}
+      </TableCell>
     </TableRow>
 
   )
@@ -32,29 +36,40 @@ function BsddReportRow({ key, valid, instance, requirement, required, observed }
 }
 
 export default function BsddTreeView({ bsddResults, status }) {
+  const context = useContext(PageContext);
 
   const bsdd = bsddResults.bsdd;
+
+  let expanded = ["root"];
+  if (context.printView) {
+    Object.entries(bsdd || {}).forEach(([domain, classifications], l1) => {
+      expanded.push(`node-${l1}`);
+      Object.entries(classifications).forEach(([classification, results], l2) => {
+        expanded.push(`node-${l1}-${l2}`)
+      });
+    });
+  }
 
   return (
     <Paper sx={{ overflow: 'hidden' }}><TreeView
       aria-label="file system navigator"
       defaultCollapseIcon={<ExpandMoreIcon />}
       defaultExpandIcon={<ChevronRightIcon />}
-      defaultExpanded={["0"]}
+      defaultExpanded={expanded}
       sx={{ "width": "850px", "backgroundColor": statusToColor[status], "> li > .MuiTreeItem-content": { padding: "16px" }, ".MuiTreeItem-content.Mui-expanded": { borderBottom: 'solid 1px black' } }}
     >
-      <TreeItem nodeId="0" label={"bSDD"}>
-        <TreeView defaultCollapseIcon={<ExpandMoreIcon />}
+      <TreeItem nodeId="root" label={"bSDD"}>
+        <TreeView defaultCollapseIcon={<ExpandMoreIcon />} defaultExpanded={expanded}
           defaultExpandIcon={<ChevronRightIcon />}>
           {
-            Object.entries(bsdd || {}).map(([domain, classifications]) => {
+            Object.entries(bsdd || {}).map(([domain, classifications], l1) => {
 
-              return <TreeItem nodeId={11} label={`Domain: ${domain}`} disabled={domain == "no IfcClassification" ? true : false}>
-                <TreeView defaultCollapseIcon={<ExpandMoreIcon />}
+              return <TreeItem nodeId={`node-${l1}`} label={`Domain: ${domain}`} disabled={domain == "no IfcClassification" ? true : false}>
+                <TreeView defaultCollapseIcon={<ExpandMoreIcon />} defaultExpanded={expanded}
                   defaultExpandIcon={<ChevronRightIcon />}>
                   {
-                    Object.entries(classifications).map(([classification, results]) => {
-                      return <TreeItem nodeId={12} label={`Classification: ${classification}`} disabled={classification == "no IfcClassificationReference" ? true : false}>
+                    Object.entries(classifications).map(([classification, results], l2) => {
+                      return <TreeItem nodeId={`node-${l1}-${l2}`} label={`Classification: ${classification}`} disabled={classification == "no IfcClassificationReference" ? true : false}>
                         {
                           results.map((result) => {
                             return <div >
@@ -91,6 +106,7 @@ export default function BsddTreeView({ bsddResults, status }) {
                                           requirement={"IFC entity type"}
                                           required={result.bsdd_type_constraint || ''}
                                           observed={result.ifc_type}
+                                          printView={context.printView}
                                         />
 
                                         {/* PROPERTY SET  */}
@@ -100,6 +116,7 @@ export default function BsddTreeView({ bsddResults, status }) {
                                           requirement={"Property Set"}
                                           required={result.bsdd_property_constraint.propertySet}
                                           observed={result.ifc_property_set}
+                                          printView={context.printView}
                                         />}
 
                                         {/* PROPERTY */}
@@ -109,6 +126,7 @@ export default function BsddTreeView({ bsddResults, status }) {
                                           requirement={"Property Name"}
                                           required={result.bsdd_property_constraint.name}
                                           observed={result.ifc_property_value}
+                                          printView={context.printView}
                                         />}
 
                                         {/* DATA TYPE */}
@@ -118,6 +136,7 @@ export default function BsddTreeView({ bsddResults, status }) {
                                           requirement={"Property Value Type"}
                                           required={result.bsdd_property_constraint.dataType}
                                           observed={result.ifc_property_type}
+                                          printView={context.printView}
                                         />}
 
                                         {/* PROPERTY VALUE */}
@@ -127,6 +146,7 @@ export default function BsddTreeView({ bsddResults, status }) {
                                           requirement={"Property Value"}
                                           required={result.bsdd_property_constraint.predefinedValue}
                                           observed={result.ifc_property_value}
+                                          printView={context.printView}
                                         />}
                                       </>
                                     </TableBody>

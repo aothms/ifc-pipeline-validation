@@ -67,10 +67,10 @@ function Report({ kind }) {
       <div>
         <Grid direction="column"
           container
-          style={{
+          style={context.printView ? {} :  {
             minHeight: '100vh', alignItems: 'stretch',
           }} >
-          <ResponsiveAppBar user={user} />
+          {context.printView || <ResponsiveAppBar user={user} />}
           <Grid
             container
             flex={1}
@@ -78,13 +78,13 @@ function Report({ kind }) {
             style={{
             }}
           >
-            <SideMenu />
+            {context.printView || <SideMenu />}
 
             <Grid
               container
               flex={1}
               direction="column"
-              style={{
+              style={context.printView ? {} : {
                 justifyContent: "space-between",
                 overflow: 'scroll',
                 boxSizing: 'border-box',
@@ -102,7 +102,7 @@ function Report({ kind }) {
                   direction="column"
                   alignItems="center"
                   justifyContent="space-between"
-                  style={{
+                  style={context.printView ? {gap: '15px'} : {
                     minHeight: '100vh', gap: '15px', backgroundColor: 'rgb(242 246 248)',
                     border: context.sandboxId ? 'solid 12px red' : 'none'
                   }}
@@ -117,23 +117,24 @@ function Report({ kind }) {
                       borderRadius: "0 0 16px 16px"
                     }}
                   >Sandbox for <b>{prTitle}</b></h2>}
-                  <Disclaimer />
+                  {context.printView || <Disclaimer />}
                   {isLoaded
                     ? <>
                         {(kind === "syntax_and_schema") && <h2>Syntax and Schema Report</h2>}
                         {(kind === "bsdd") && <h2>bSDD Report</h2>}
                         {(kind === "rules") && <h2>Rules Report</h2>}
                         {(kind === "file") && <h2>File metrics</h2>}
+                        {(kind === "all") && <h2>Validation report</h2>}
 
                         <GeneralTable data={reportData} type={"general"} />
 
-                        {(kind === "syntax_and_schema") && <SyntaxResult status={reportData["model"]["status_syntax"]} summary={"Syntax"} content={reportData["results"]["syntax_result"]} />}
-                        {(kind === "syntax_and_schema") && <SchemaResult status={reportData["model"]["status_schema"]} summary={"Schema"} content={reportData["results"]["schema_result"]} instances={reportData.instances} />}
-                        {(kind === "bsdd") && <BsddTreeView status={reportData["model"]["status_bsdd"]} summary={"bSDD"} bsddResults={reportData["results"]["bsdd_results"]} />}
-                        {(kind === "rules") && <GherkinResults status={reportData["model"]["status_ia"]} gherkin_task={reportData.tasks.gherkin_rules} />}
+                        {(kind === "syntax_and_schema" || kind === "all") && <SyntaxResult status={reportData["model"]["status_syntax"]} summary={"Syntax"} content={reportData["results"]["syntax_result"]} />}
+                        {(kind === "syntax_and_schema" || kind === "all") && <SchemaResult status={reportData["model"]["status_schema"]} summary={"Schema"} content={reportData["results"]["schema_result"]} instances={reportData.instances} />}
+                        {(kind === "bsdd" || kind === "all") && <BsddTreeView status={reportData["model"]["status_bsdd"]} summary={"bSDD"} bsddResults={reportData["results"]["bsdd_results"]} />}
+                        {(kind === "rules" || kind === "all") && <GherkinResults status={reportData["model"]["status_ia"]} gherkin_task={reportData.tasks.gherkin_rules} />}
                       </>
                     : <div>Loading...</div>}
-                  <Footer />
+                  {context.printView || <Footer />}
                 </Grid>
               </div>
             </Grid>
