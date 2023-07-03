@@ -94,3 +94,8 @@ Start flask with
 ~~~
 docker exec -it $(docker ps -q --filter name=db) psql -U postgres bimsurfer2
 ~~~
+
+## Bulk upload and report download
+
+    find . -type f -name '*.ifc' -size -100M -exec curl -X POST -F "file=@{}" http://localhost/api/ \;
+    curl -s http://localhost/api/models_paginated/0/100 | jq .models | jq -r '.[] | select(.progress == 100) | .code' | xargs -I{} wget --content-disposition http://localhost/api/download/{}.pdf

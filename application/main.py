@@ -77,7 +77,8 @@ if has_orjson:
 
 DEVELOPMENT = os.environ.get(
     'environment', 'production').lower() == 'development'
-if not DEVELOPMENT:
+BASIC_MODE = 'BASIC_MODE' in os.environ
+if not DEVELOPMENT and not BASIC_MODE:
     assert os.getenv("DEV_EMAIL")
     assert os.getenv("ADMIN_EMAIL")
     assert os.getenv("CONTACT_EMAIL")
@@ -124,21 +125,23 @@ if not DEVELOPMENT and not NO_REDIS:
 if not DEVELOPMENT:
     application.config['SESSION_TYPE'] = 'filesystem'
     application.config['SECRET_KEY'] = os.environ['SECRET_KEY']
-    # LOGIN
-    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-    os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
-    # Credentials you get from registering a new application
-    client_id = os.environ['CLIENT_ID']
-    client_secret = os.environ['CLIENT_SECRET']
-    authorization_base_url = 'https://authentication.buildingsmart.org/buildingsmartservices.onmicrosoft.com/b2c_1a_signupsignin_c/oauth2/v2.0/authorize'
-    token_url = 'https://authentication.buildingsmart.org/buildingSMARTservices.onmicrosoft.com/b2c_1a_signupsignin_c/oauth2/v2.0/token'
-    redirect_uri = f'https://{os.environ["SERVER_NAME"]}/callback'
+
+    if not BASIC_MODE:
+        # LOGIN
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+        os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
+        # Credentials you get from registering a new application
+        client_id = os.environ['CLIENT_ID']
+        client_secret = os.environ['CLIENT_SECRET']
+        authorization_base_url = 'https://authentication.buildingsmart.org/buildingsmartservices.onmicrosoft.com/b2c_1a_signupsignin_c/oauth2/v2.0/authorize'
+        token_url = 'https://authentication.buildingsmart.org/buildingSMARTservices.onmicrosoft.com/b2c_1a_signupsignin_c/oauth2/v2.0/token'
+        redirect_uri = f'https://{os.environ["SERVER_NAME"]}/callback'
 
 
 def login_required(f):
     @wraps(f)
     def decorated_function(**kwargs):
-        if not DEVELOPMENT:
+        if not DEVELOPMENT and not BASIC_MODE:
             if not "oauth_token" in session.keys() or 'user_data' not in session:
                 # before redirect, capture the commit id
                 session['commit_id'] = kwargs.get('commit_id')
@@ -217,7 +220,7 @@ def login():
 @application.route('/api/me', methods=['GET'])
 @with_sandbox
 def me(pr_title=None, commit_id=None):
-    if not DEVELOPMENT:
+    if not DEVELOPMENT and not BASIC_MODE:
         if not "oauth_token" in session.keys():   
             bs = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=[
                             "openid profile", "https://buildingSMARTservices.onmicrosoft.com/api/read"])
@@ -362,7 +365,7 @@ def process_upload_validation(files, validation_config, user_id, commit_id=None,
             session.add(database.model(id, fn, user_id, commit_id))
         session.commit()
    
-        if not DEVELOPMENT:
+        if not DEVELOPMENT and not BASIC_MODE:
             user = session.query(database.user).filter(database.user.id == user_id).all()[0]
             msg = f"{len(filenames)} file(s) were uploaded by user {user.name} ({user.email}): {(', ').join(filenames)}"
             utils.send_message(msg, [os.getenv("CONTACT_EMAIL")])
@@ -823,15 +826,29 @@ def results(user_data, id):
 @application.route('/api/download/<id>', methods=['GET'])
 @login_required
 def download_model(user_data, id):
+    parts = id.split(".")
+    if len(parts) == 1:
+        if len(id) == 32:
+            filter = database.model.code == id
+        else:
+            filter = database.model.id == id
+        ext = "ifc"
+    elif len(parts) == 2:
+        id, ext = parts
+        filter = database.model.code == id
+    else:
+        abort(400)
+
     with database.Session() as session:
         session = database.Session()
-        model = session.query(database.model).filter(database.model.id == id).all()[0]
+        model = session.query(database.model).filter(filter).all()[0]
         if model.user_id != user_data["sub"]:
             abort(403)
         code = model.code
-    path = utils.storage_file_for_id(code, "ifc")
 
-    return send_file(path, download_name=model.filename, as_attachment=True, conditional=True)
+    path = utils.storage_file_for_id(code, ext)
+
+    return send_file(path, download_name=model.filename+(".pdf" if ext == "pdf" else ""), as_attachment=True, conditional=True)
 
 @application.route('/api/delete/<id>', methods=['POST'])
 @login_required
@@ -847,44 +864,6 @@ def delete(user_data, id):
         session.commit()
     return jsonify({"status":"success", "id":id})
 
-@application.route('/m/<fn>', methods=['GET'])
-def get_model(fn):
-    """
-    Get model component
-    ---
-    parameters:
-        - in: path
-          name: fn
-          required: true
-          schema:
-              type: string
-          description: Model id and part extension
-          example: BSESzzACOXGTedPLzNiNklHZjdJAxTGT.glb
-    """
-
-    id, ext = fn.split('.', 1)
-
-    if not utils.validate_id(id):
-        abort(404)
-
-    if ext not in {"pdf"}:
-        abort(404)
-
-    path = utils.storage_file_for_id(id, ext)
-
-    if not os.path.exists(path):
-        abort(404)
-
-    if os.path.exists(path + ".gz"):
-        import mimetypes
-        response = make_response(
-            send_file(path + ".gz",
-                      mimetype=mimetypes.guess_type(fn, strict=False)[0])
-        )
-        response.headers['Content-Encoding'] = 'gzip'
-        return response
-    else:
-        return send_file(path)
 
 """
 # Create a file called routes.py with the following

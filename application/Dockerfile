@@ -32,9 +32,19 @@ RUN wget -O /tmp/ifcopenshell_python.zip https://s3.amazonaws.com/ifcopenshell-b
 RUN mkdir -p `python3 -c 'import site; print(site.getusersitepackages())'`
 RUN unzip -d `python3 -c 'import site; print(site.getusersitepackages())'` /tmp/ifcopenshell_python.zip
 
-
-# Server
 WORKDIR /www
+
+RUN wget -qO- https://nodejs.org/dist/v16.18.0/node-v16.18.0-linux-x64.tar.gz | tar -xzC /opt
+ENV PATH /opt/node-v16.18.0-linux-x64/bin:$PATH
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
+ENV PUPPETEER_EXECUTABLE_PATH /usr/bin/google-chrome
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && apt-get install -y ./google-chrome-stable_current_amd64.deb && rm google-chrome-stable_current_amd64.deb
+#RUN apt-get update \
+# && apt-get install -y chromium-browser \
+#    fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
+#    --no-install-recommends
+RUN npm install puppeteer
+
 COPY . /www
 
 COPY application/checks /www/checks
