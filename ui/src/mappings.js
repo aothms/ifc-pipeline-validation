@@ -13,3 +13,12 @@ export const statusToSymbol =
     "w": ["&#9888;", "rgb(255, 204, 0)"]
 };
 
+export const messageToStatus = (msg) => {
+    if (msg === "Rule passed") {
+        return "v";
+    } else if (msg === "Rule disabled") {
+        return "n";
+    } else {
+        return "i";
+    }
+};

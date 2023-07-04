@@ -4,21 +4,10 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import TreeItem from '@mui/lab/TreeItem';
 import Paper from '@mui/material/Paper';
-import { statusToColor } from './mappings'
+import { statusToColor, messageToStatus } from './mappings'
 
 function GherkinResults({ status, gherkin_task }) {
-    let label = "Rules"
-    
-    const messageToStatus = (msg) => {
-        if (msg === "Rule passed") {
-            return "v";
-        } else if (msg === "Rule disabled") {
-            return "n";
-        } else {
-            return "i";
-        }
-    };
-    
+    let label = "Rules";    
     let previousStatus = null;
     
     return <Paper sx={{overflow: 'hidden'}}><TreeView

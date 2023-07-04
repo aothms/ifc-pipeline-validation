@@ -15,6 +15,7 @@ import { useEffect, useState, useContext } from 'react';
 import { FETCH_PATH } from './environment'
 import { PageContext } from './Page';
 import HandleAsyncError from './HandleAsyncError';
+import { messageToStatus } from './mappings'
 
 function Report({ kind }) {
   const context = useContext(PageContext);
@@ -61,6 +62,34 @@ function Report({ kind }) {
     getReport(modelCode);
   }, [modelCode]);
 
+  let numSyntax = 0; 
+  let numSchema = 0;
+  let numBsdd = 0;
+  let numRules = 0;
+
+  if (reportData && reportData.results) {
+    numSyntax = reportData.results.syntax_result.length;
+    numSchema = reportData.results.schema_result.length;
+  
+    Object.entries(reportData.results.bsdd_results.bsdd || {}).forEach(([domain, classifications], l1) => {
+      Object.entries(classifications).forEach(([classification, results], l2) => {
+        if (domain !== "no IfcClassification" && classification !== "no IfcClassificationReference") {
+          results.forEach((result) => {
+            numBsdd += result.val_ifc_type !== true;
+            numBsdd += result.val_property_set !== true;
+            numBsdd += result.val_property_name !== true;
+            numBsdd += result.val_property_type !== true;
+            numBsdd += result.val_property_value !== true;
+          });
+        }
+      });
+    });
+
+    if (reportData.tasks.gherkin_rules && reportData.tasks.gherkin_rules.results.length > 0) {
+      numRules = reportData.tasks.gherkin_rules.results.filter((result) => messageToStatus(result.message) === 'i').length
+    }
+  }
+  
   if (isLoggedIn) {
     console.log("Report data ", reportData)
     return (
@@ -128,10 +157,19 @@ function Report({ kind }) {
 
                         <GeneralTable data={reportData} type={"general"} />
 
-                        {(kind === "syntax_and_schema" || kind === "all") && <SyntaxResult status={reportData["model"]["status_syntax"]} summary={"Syntax"} content={reportData["results"]["syntax_result"]} />}
-                        {(kind === "syntax_and_schema" || kind === "all") && <SchemaResult status={reportData["model"]["status_schema"]} summary={"Schema"} content={reportData["results"]["schema_result"]} instances={reportData.instances} />}
-                        {(kind === "bsdd" || kind === "all") && <BsddTreeView status={reportData["model"]["status_bsdd"]} summary={"bSDD"} bsddResults={reportData["results"]["bsdd_results"]} />}
-                        {(kind === "rules" || kind === "all") && <GherkinResults status={reportData["model"]["status_ia"]} gherkin_task={reportData.tasks.gherkin_rules} />}
+                        {(kind === "all") && <div style={{display: 'flex', gap: '100px'}}>
+                            <a href='#syntax'>{numSyntax} syntax issues</a>
+                            {(typeof(numSchema) !== 'undefined') && <>
+                              <a href='#schema'>{numSchema} schema issues</a>
+                              <a href='#bsdd'>{numBsdd} bsdd issues</a>
+                              <a href='#rules'>{numRules} rules issues</a>
+                            </>}
+                          </div>}
+
+                        {(kind === "syntax_and_schema" || kind === "all") && <><a id='syntax' /><SyntaxResult status={reportData["model"]["status_syntax"]} summary={"Syntax"} content={reportData["results"]["syntax_result"]} /></>}
+                        {(kind === "syntax_and_schema" || kind === "all") && <><a id='schema' /><SchemaResult status={reportData["model"]["status_schema"]} summary={"Schema"} content={reportData["results"]["schema_result"]} instances={reportData.instances} /></>}
+                        {(kind === "bsdd" || kind === "all") && <><a id='bsdd' /><BsddTreeView status={reportData["model"]["status_bsdd"]} summary={"bSDD"} bsddResults={reportData["results"]["bsdd_results"]} /></>}
+                        {(kind === "rules" || kind === "all") && <><a id='rules' /><GherkinResults status={reportData["model"]["status_ia"]} gherkin_task={reportData.tasks.gherkin_rules} /></>}
                       </>
                     : <div>Loading...</div>}
                   {context.printView || <Footer />}
